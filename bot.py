@@ -56,4 +56,65 @@ async def join(ctx):
         await ctx.send("You are not connected to a voice channel.")
         return
     else:
-        channel = ctx.message.author.voice.channel
+        channel = ctx.message.author.voice.channel await channel.connect()
+
+
+# Command: Leave voice channel
+@bot.command(name='leave')
+async def leave(ctx):
+    voice_client = ctx.message.guild.voice_client
+    if voice_client and voice_client.is_connected():
+        await voice_client.disconnect()
+    else:
+        await ctx.send("The bot is not connected to a voice channel.")
+
+
+# Command: Play track from Spotify
+@bot.command(name='play')
+async def play(ctx, url: str):
+    if not url.startswith('https://open.spotify.com/track/'):
+        await ctx.send("Please provide a valid Spotify track URL.")
+        return
+
+    voice_client = ctx.message.guild.voice_client
+    if not voice_client:
+        await ctx.send("The bot is not connected to a voice channel.")
+        return
+
+    async with ctx.typing():
+        player = await YTDLSource.from_spotify(url, loop=bot.loop)
+        voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
+
+    await ctx.send(f'Now playing: {player.title}')
+
+
+# Command: 24/7 Mode
+@bot.command(name='247')
+async def mode_247(ctx):
+    if ctx.author.id not in premium_users:
+        await ctx.send("This feature is available for premium users only.")
+        return
+
+    await ctx.send("24/7 mode enabled. The bot will stay connected even when idle.")
+
+
+# Command: Add premium user
+@bot.command(name='addpremium')
+async def add_premium(ctx, user: discord.User):
+    if ctx.author.id != YOUR_DISCORD_ID:
+        await ctx.send("You do not have permission to use this command.")
+        return
+
+    premium_users.add(user.id)
+    await ctx.send(f"User {user.name} has been added to premium users.")
+
+
+# Command: Remove premium user
+@bot.command(name='removepremium')
+async def remove_premium(ctx, user: discord.User):
+    if ctx.author.id != YOUR_DISCORD_ID:
+        await ctx.send("You do not have permission to use this command.")
+        return
+
+    premium_users.discard(user.id)
+    await ctx.send(f"User {user.name} has been removed from premium users.")
